@@ -172,8 +172,8 @@ else:
 
 
 # Feature engineering: interactions and ratios for domain insight
-train_data['Temp_humidity'] = train_data['Temperature'] * train_data['Humidity'] / 100  # Relative interaction
-train_data['Temp_moisture'] = train_data['Temperature'] * train_data['Moisture']        # Cross feature
+train_data['Temp_humidity'] = train_data['Temperature'] * train_data['Humidity'] / 100    # Relative interaction
+train_data['Temp_moisture'] = train_data['Temperature'] * train_data['Moisture'] / 100      # Cross feature
 train_data['Humidity_ratio'] = train_data['Humidity'] / (train_data['Temperature'] + 1e-6)  # Avoid div-by-zero
 
 # Aggregate nutrient content (useful for total fertility)
@@ -197,7 +197,7 @@ train_data['soil_crop'] = train_data['Soil Type'].astype(str) + "_" + train_data
 
 # Apply same feature engineering to test data
 test_data['Temp_humidity'] = test_data['Temperature'] * test_data['Humidity'] / 100
-test_data['Temp_moisture'] = test_data['Temperature'] * test_data['Moisture']
+test_data['Temp_moisture'] = test_data['Temperature'] * test_data['Moisture'] / 100
 test_data['Humidity_ratio'] = test_data['Humidity'] / (test_data['Temperature'] + 1e-6)
 
 test_data['npk_total'] = test_data['Nitrogen'] + test_data['Phosphorus'] + test_data['Potassium']
@@ -213,7 +213,7 @@ test_data['p_quartile'] = pd.qcut(test_data['Phosphorus'], 4, labels=["small", "
 test_data['soil_crop'] = test_data['Soil Type'].astype(str) + "_" + test_data['Crop Type'].astype(str)
 
 # Prepare features and target
-drop_cols = ['Soil Type', 'Crop Type']
+drop_cols = ['Soil Type', 'Crop Type', 'Nitrogen', 'Phosphorus', 'Potassium']
 X = train_data.drop(columns=drop_cols + ['Fertilizer Name'])  # Final feature set
 y = train_data['Fertilizer Name']                              # Target labels
 
@@ -267,7 +267,7 @@ def objective(trial):
     return mapk(y_valid_, top3, k=3)
 
 study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=15, show_progress_bar=True)
+study.optimize(objective, n_trials=30, show_progress_bar=True)
 
 print("Best MAP@3:", study.best_value)
 print("Best Params:", study.best_params)
@@ -280,7 +280,7 @@ best_model = CatBoostClassifier(
     eval_metric='TotalF1',
     cat_features=cat_features,
     random_seed=42,
-    verbose=50
+    verbose=100
 )
 best_model.fit(X, y_encoded)
 
