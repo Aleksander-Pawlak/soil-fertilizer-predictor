@@ -20,7 +20,7 @@ np.random.seed(42)
 
 # Load training and test datasets from local path
 train = pd.read_csv('dane/playground-series-s5e6/train.csv')
-test = pd.read_csv('dane/playground-series-s5e6/train.csv')
+test = pd.read_csv('dane/playground-series-s5e6/test.csv')
 
 train = train.rename(columns={"Temparature":"Temperature", "Phosphorous":"Phosphorus"})
 test = test.rename(columns={"Temparature":"Temperature", "Phosphorous":"Phosphorus"})
@@ -32,6 +32,7 @@ test_id = test['id'].copy()
 # Drop ID columns before doing any feature engineering or model training
 train_data = train.drop(columns=['id'])
 test_data = test.drop(columns=['id'])
+
 
 
 from utils.check_duplicates import check_duplicates_report
@@ -217,6 +218,11 @@ drop_cols = ['Soil Type', 'Crop Type', 'Nitrogen', 'Phosphorus', 'Potassium']
 X = train_data.drop(columns=drop_cols + ['Fertilizer Name'])  # Final feature set
 y = train_data['Fertilizer Name']                              # Target labels
 
+X_test = test_data.drop(columns=drop_cols)  # Test features, no target
+
+
+
+
 # Encode string labels into numerical values
 le = LabelEncoder()
 y_encoded = le.fit_transform(y)
@@ -294,16 +300,16 @@ top3 = np.argsort(probs, axis=1)[:, ::-1][:, :3]
 map3_score = mapk(y_val, top3, k=3)
 print(f"Validation MAP@3: {map3_score:.4f}")
 
+# Visualize feature importances
+#feature_importances = best_model.get_feature_importance(prettified=True)
+#feature_importances.plot(kind='barh', x='Feature Id', y='Importances', figsize=(10, 6))
+#plt.title("Feature Importances")
+#plt.show()
 
-feature_importances = best_model.get_feature_importance(prettified=True)
-feature_importances.plot(kind='barh', x='Feature Id', y='Importances', figsize=(10, 6))
-plt.title("Feature Importances")
-plt.show()
-
-
-probs_test = best_model.predict_proba(test_data)
+# Predict on test set
+probs_test = best_model.predict_proba(X_test)
 top3_test = np.argsort(probs_test, axis=1)[:, ::-1][:, :3]
-top3_labels = le.inverse_transform(top3_test)
+top3_labels = np.array([le.inverse_transform(row) for row in top3_test])
 
 # Prepare submission DataFrame
 submission = pd.DataFrame({
